@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>포켓몬 배구</title>
+    <style>
+        body { text-align: center; background: #f0f0f0; font-family: sans-serif; }
+        canvas { background: #87CEEB; border: 5px solid #333; display: block; margin: 0 auto; }
+        .controls { margin-top: 10px; color: #555; }
+    </style>
+</head>
+<body>
+    <h2>⚡ 피카츄 vs 고라파덕 🦆</h2>
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+    <div class="controls">
+        <p>피카츄(왼쪽): W(점프), A(왼쪽), D(오른쪽) | 고라파덕(오른쪽): 방향키</p>
+    </div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+const config = {
+    gravity: 0.4,
+    playerSpeed: 5,
+    jumpPower: -10,
+    ballSpeedLimit: 8
+};
+
+const p1 = { x: 100, y: 350, w: 50, h: 50, dy: 0, color: '#FFD700', label: '⚡', isJumping: false };
+const p2 = { x: 650, y: 350, w: 50, h: 50, dy: 0, color: '#F4D03F', label: '🦆', isJumping: false };
+const ball = { x: 400, y: 100, r: 15, dx: 2, dy: 2, color: '#FF0000' };
+
+const keys = {};
+window.addEventListener('keydown', e => keys[e.code] = true);
+window.addEventListener('keyup', e => keys[e.code] = false);
+
+function update() {
+    // 플레이어 1 제어 (피카츄)
+    if (keys['KeyA'] && p1.x > 0) p1.x -= config.playerSpeed;
+    if (keys['KeyD'] && p1.x < 350) p1.x += config.playerSpeed;
+    if (keys['KeyW'] && !p1.isJumping) { p1.dy = config.jumpPower; p1.isJumping = true; }
+
+    // 플레이어 2 제어 (고라파덕)
+    if (keys['ArrowLeft'] && p2.x > 400) p2.x -= config.playerSpeed;
+    if (keys['ArrowRight'] && p2.x < 750) p2.x += config.playerSpeed;
+    if (keys['ArrowUp'] && !p2.isJumping) { p2.dy = config.jumpPower; p2.isJumping = true; }
+
+    // 중력 적용
+    [p1, p2].forEach(p => {
+        p.y += p.dy;
+        if (p.y < 350) p.dy += config.gravity;
+        else { p.y = 350; p.dy = 0; p.isJumping = false; }
+    });
+
+    // 공 물리 엔진 (기존 속도의 95% 수준으로 조절됨)
+    ball.x += ball.dx * 0.95;
+    ball.y += ball.dy * 0.95;
+    ball.dy += 0.15; // 공 중력
+
+    // 벽 충돌
+    if (ball.x < 0 || ball.x > canvas.width) ball.dx *= -1;
+    if (ball.y < 0) ball.dy *= -1;
+
+    // 바닥 충돌 (득점 체크)
+    if (ball.y > canvas.height) {
+        ball.x = 400; ball.y = 100; ball.dy = 2;
+    }
+
+    // 네트 충돌 (중앙선)
+    if (ball.x > 390 && ball.x < 410 && ball.y > 300) ball.dx *= -1;
+
+    // 캐릭터 충돌 체크
+    [p1, p2].forEach(p => {
+        if (ball.x > p.x && ball.x < p.x + p.w && ball.y > p.y && ball.y < p.y + p.h) {
+            ball.dy = -7;
+            ball.dx = (ball.x - (p.x + p.w / 2)) * 0.5;
+        }
+    });
+}
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 바닥 & 네트
+    ctx.fillStyle = '#654321';
+    ctx.fillRect(0, 390, 800, 10);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(395, 300, 10, 100);
+
+    // 피카츄 (왼쪽)
+    ctx.fillStyle = p1.color;
+    ctx.fillRect(p1.x, p1.y, p1.w, p1.h);
+    ctx.fillStyle = 'black';
+    ctx.fillText(p1.label, p1.x + 15, p1.y + 30);
+
+    // 고라파덕 (오른쪽)
+    ctx.fillStyle = p2.color;
+    ctx.fillRect(p2.x, p2.y, p2.w, p2.h);
+    ctx.fillStyle = 'black';
+    ctx.fillText(p2.label, p2.x + 15, p2.y + 30);
+
+    // 몬스터볼
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+    ctx.fillStyle = 'white';
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = 'red';
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.r, Math.PI, 0);
+    ctx.fill();
+}
+
+function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
+
+ctx.font = '20px Arial';
+loop();
+</script>
+</body>
+</html>
